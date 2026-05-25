@@ -1509,6 +1509,20 @@ async def booking_payment_check(message: types.Message, state: FSMContext):
     except Exception as e:
         logger.error(f"Ошибка при отправке уведомления админу: {e}")
 
+    # Инлайн-кнопка для подготовки к пирсингу (только для пирсинга)
+    if service_type == "piercing":
+        prep_keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="📌 Подготовка к пирсингу ВАЖНО!", callback_data="show_preparation")]
+            ]
+        )
+    else:
+        prep_keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="📌 Подготовка к тату ВАЖНО!", callback_data="show_tattoo_prep")]
+            ]
+        )
+
     address_text = (
         "✅ Заявка отправлена мастеру! Спасибо за предоплату 💫\n\n"
         "📍 Tattoo.Gem\n"
@@ -1522,8 +1536,8 @@ async def booking_payment_check(message: types.Message, state: FSMContext):
     )
 
     try:
-        # Отправляем текст
-        await safe_send_message(message, address_text)
+        # Отправляем текст с кнопкой подготовки
+        await safe_send_message(message, address_text, reply_markup=prep_keyboard)
         
         # Отправляем фотографии входа
         media = []
@@ -2487,6 +2501,58 @@ async def client_confirm_questions(callback: types.CallbackQuery):
     
     # Всё равно отправляем памятку
     await send_aftercare_and_motivation(user_id, service_type)
+
+# Показать подготовку к пирсингу (после отправки заявки)
+@dp.callback_query(F.data == "show_preparation")
+async def show_preparation_callback(callback: types.CallbackQuery):
+    text = (
+        "📌 ПОДГОТОВКА К ПИРСИНГУ (ОЧЕНЬ ВАЖНО!):\n\n"
+        "✅ За 24 часа:\n"
+        "• Не употреблять алкоголь\n"
+        "• Не принимать кроворазжижающие препараты\n"
+        "• Выспаться\n\n"
+        "✅ За 2-3 часа:\n"
+        "• Плотно поесть (пирсинг на голодный желудок делать нельзя!)\n"
+        "• Пить достаточно воды\n\n"
+        "✅ Непосредственно перед процедурой:\n"
+        "• Почистить зубы (если прокол во рту)\n"
+        "• Принять душ\n"
+        "• Не использовать косметику в зоне прокола\n"
+        "• Снять контактные линзы (если прокол брови)\n\n"
+        "❌ ЗАПРЕЩЕНО:\n"
+        "• Кофеин за 3 часа до процедуры\n"
+        "• Алкоголь за 24 часа\n"
+        "• Голодание\n"
+        "• Стресс и недосып\n\n"
+        "⚠️ Если вы плохо себя чувствуете, заболели или не выспались - "
+        "лучше перенести запись и предупредить мастера!"
+    )
+    await callback.answer()
+    await safe_send_message(callback.message, text)
+
+# Показать подготовку к тату (после отправки заявки)
+@dp.callback_query(F.data == "show_tattoo_prep")
+async def show_tattoo_prep_callback(callback: types.CallbackQuery):
+    text = (
+        "📌 ПОДГОТОВКА К СЕАНСУ ТАТУ (ОЧЕНЬ ВАЖНО!):\n\n"
+        "✅ За 24 часа:\n"
+        "• Не употреблять алкоголь\n"
+        "• Не принимать кроворазжижающие препараты\n"
+        "• Выспаться\n\n"
+        "✅ В день сеанса:\n"
+        "• Плотно поесть\n"
+        "• Пить достаточно воды\n"
+        "• Принять душ\n"
+        "• Надеть удобную одежду\n\n"
+        "❌ ЗАПРЕЩЕНО:\n"
+        "• Кофеин за 3 часа до сеанса\n"
+        "• Алкоголь за 24 часа\n"
+        "• Голодание\n\n"
+        "⚠️ Если вы плохо себя чувствуете, заболели или не выспались - "
+        "лучше перенести запись и предупредить мастера!"
+    )
+    await callback.answer()
+    await safe_send_message(callback.message, text)
 
 # Получение памятки для пирсинга
 @dp.callback_query(F.data.startswith("get_piercing_care_"))
